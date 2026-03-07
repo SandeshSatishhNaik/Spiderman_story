@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spider-Man: Into the Night — A Marvel Cinematic Experience</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="Dive into the dark, neon-lit streets of Marvel's New York. Experience Spider-Man's story through an immersive, scroll-driven cinematic journey." />
+  <meta name="keywords" content="Spider-Man, Marvel, cinematic experience, interactive storytelling, web-slinger, New York City, superhero" />
+  <meta name="author" content="Marvel Narrative Labs" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#0a0a0f" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Spider-Man: Into the Night" />
+  <meta property="og:description" content="An immersive, scroll-driven cinematic journey through Spider-Man's neon-drenched New York." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="images/ezgif-frame-001.png" />
+  <meta property="og:url" content="https://spiderman-intothenight.marvel.com" />
+  <meta property="og:site_name" content="Spider-Man: Into the Night" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Spider-Man: Into the Night" />
+  <meta name="twitter:description" content="An immersive, scroll-driven cinematic journey through Spider-Man's New York." />
+  <meta name="twitter:image" content="images/ezgif-frame-001.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       LOADING SCREEN — Spider-Sense Radar
+       ════════════════════════════════════════════════════════════════════ -->
+  <div id="loader" aria-label="Loading cinematic experience" role="progressbar"
+       aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="loader__inner">
+
+      <!-- Animated hexagonal radar -->
+      <div class="loader__radar">
+        <div class="loader__hex-ring loader__hex-ring--1"></div>
+        <div class="loader__hex-ring loader__hex-ring--2"></div>
+        <div class="loader__hex-ring loader__hex-ring--3"></div>
+        <div class="loader__sweep"></div>
+        <div class="loader__spider-icon">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="36" rx="12" ry="14" fill="#ED1D24"/>
+            <ellipse cx="50" cy="60" rx="16" ry="18" fill="#ED1D24"/>
+            <path d="M34 36 Q14 18 4 6" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M36 44 Q16 38 4 30" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M36 54 Q16 60 4 66" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M38 64 Q20 76 8 90" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M66 36 Q86 18 96 6" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M64 44 Q84 38 96 30" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M64 54 Q84 60 96 66" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M62 64 Q80 76 92 90" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <p class="loader__text">SPIDER-SENSE INITIALIZING</p>
+      <div class="loader__bar-track">
+        <div class="loader__bar-fill" id="loaderBar"></div>
+      </div>
+      <p class="loader__percent" id="loaderPercent">0%</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       SCROLL PROGRESS INDICATOR — Thin bar at top of viewport
+       ════════════════════════════════════════════════════════════════════ -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       MOUSE FOLLOWER — Reactive glow that trails the cursor
+       ════════════════════════════════════════════════════════════════════ -->
+  <div class="mouse-follower" id="mouseFollower" aria-hidden="true"></div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       PARTICLE WEB CANVAS — Spider-web thread particles over everything
+       ════════════════════════════════════════════════════════════════════ -->
+  <canvas id="webParticles" aria-hidden="true"></canvas>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       MAIN SITE WRAPPER
+       ════════════════════════════════════════════════════════════════════ -->
+  <div id="site" class="site--hidden">
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav" aria-label="Main navigation">
+      <div class="nav__logo" data-mouse-react="5">
+        <span class="nav__icon" aria-hidden="true">&#x1F577;&#xFE0F;</span>
+        <span class="nav__title">SPIDER-MAN</span>
+      </div>
+      <ul class="nav__links">
+        <li><a href="#section-mask" class="nav__link">The Mask</a></li>
+        <li><a href="#section-city" class="nav__link">The City</a></li>
+        <li><a href="#section-enemies" class="nav__link">Enemies</a></li>
+        <li><a href="#section-finale" class="nav__link nav__link--cta magnetic-btn">Enter the Web</a></li>
+      </ul>
+      <button class="nav__hamburger" id="navHamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         HERO SECTION — Canvas + Cinematic Overlays
+         ════════════════════════════════════════════════════════════════ -->
+    <main>
+      <section class="hero" id="hero" aria-label="Cinematic scroll sequence">
+        <canvas id="heroCanvas"></canvas>
+
+        <!-- Cinematic vignette + colour grade overlays -->
+        <div class="canvas-vignette" aria-hidden="true"></div>
+        <div class="canvas-color-grade" aria-hidden="true"></div>
+
+        <!-- Film grain overlay for texture -->
+        <div class="film-grain" aria-hidden="true"></div>
+
+        <!-- Opening Title Card — fades out on scroll, glitch effect -->
+        <div class="hero__title-card" id="heroTitle">
+          <p class="hero__supertitle" data-mouse-react="8">MARVEL PRESENTS</p>
+          <h1 class="hero__headline glitch-text" data-text="SPIDER-MAN" data-mouse-react="15">SPIDER-MAN</h1>
+          <p class="hero__tagline" data-mouse-react="10">INTO THE NIGHT</p>
+          <div class="hero__scroll-hint">
+            <span>SCROLL TO DESCEND</span>
+            <div class="hero__scroll-arrows">
+              <div class="hero__scroll-arrow"></div>
+              <div class="hero__scroll-arrow"></div>
+              <div class="hero__scroll-arrow"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════
+             FLOATING STORY PANELS — Scroll-progress driven
+             ════════════════════════════════════════════════════════════ -->
+
+        <!-- Section 1: The Burden of the Mask -->
+        <article class="story-panel" id="section-mask"
+                 data-appear="0.12" data-disappear="0.35">
+          <div class="story-card glass tilt-card" data-animate>
+            <div class="story-card__glow" aria-hidden="true"></div>
+            <span class="story-card__number" aria-hidden="true">01</span>
+            <h2 class="story-card__heading">The Burden of the Mask &#x1F577;&#xFE0F;</h2>
+            <div class="story-card__divider"></div>
+            <p class="story-card__body">
+              Beneath the iconic red and blue lies Peter Parker — a kid from Queens
+              who never asked to carry the weight of a city on his shoulders. Every
+              stitch of the mask is sewn with sacrifice: missed birthdays, broken
+              promises, and the ever-present question — <em>"Am I enough?"</em>
+            </p>
+            <p class="story-card__body">
+              The mask isn't just a disguise. It's a boundary between the person he
+              wants to be and the hero New York demands. When the lenses narrow and
+              the spider-sense flares, Peter Parker disappears — and something
+              greater takes his place.
+            </p>
+            <a href="#" class="story-card__cta magnetic-btn">Explore the Origin &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Section 2: The City That Never Sleeps -->
+        <article class="story-panel story-panel--right" id="section-city"
+                 data-appear="0.37" data-disappear="0.60">
+          <div class="story-card glass tilt-card" data-animate>
+            <div class="story-card__glow" aria-hidden="true"></div>
+            <span class="story-card__number" aria-hidden="true">02</span>
+            <h2 class="story-card__heading">The City That Never Sleeps &#x1F303;</h2>
+            <div class="story-card__divider"></div>
+            <p class="story-card__body">
+              Manhattan's skyline is both his playground and his prison. Between the
+              neon glow of Times Square and the shadowed alleys of Hell's Kitchen,
+              Spider-Man swings through a living, breathing organism of eight million
+              souls — each one a thread in the web he's sworn to protect.
+            </p>
+            <p class="story-card__body">
+              Taxi horns become his symphony. Police sirens, his call to action. The
+              city doesn't sleep because it can't — and neither can the hero perched
+              on its highest gargoyle, watching, waiting, ready.
+            </p>
+            <a href="#" class="story-card__cta magnetic-btn">Map the Boroughs &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Section 3: A Web of Enemies -->
+        <article class="story-panel" id="section-enemies"
+                 data-appear="0.62" data-disappear="0.86">
+          <div class="story-card glass tilt-card" data-animate>
+            <div class="story-card__glow" aria-hidden="true"></div>
+            <span class="story-card__number" aria-hidden="true">03</span>
+            <h2 class="story-card__heading">A Web of Enemies &#x1F9B9;&zwj;&#x2642;&#xFE0F;</h2>
+            <div class="story-card__divider"></div>
+            <p class="story-card__body">
+              Every hero is defined by their villains, and Spider-Man's rogues
+              gallery is relentless. The Green Goblin's cackling descent from the
+              dark sky. Doc Ock's tentacles crashing through concrete. Venom — the
+              nightmare that wears Peter's own face.
+            </p>
+            <p class="story-card__body">
+              They don't just threaten his body — they fracture his mind. Kingpin
+              dismantles his life piece by piece. Mysterio warps reality until truth
+              is just another illusion. In this web, every thread leads to a trap —
+              and the spider is always at the centre.
+            </p>
+            <a href="#" class="story-card__cta magnetic-btn">Meet the Sinister Six &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Closing Quote -->
+        <article class="story-panel story-panel--centre" id="section-finale"
+                 data-appear="0.88" data-disappear="1.0">
+          <div class="story-card glass story-card--finale tilt-card" data-animate>
+            <div class="story-card__glow" aria-hidden="true"></div>
+            <h2 class="story-card__heading story-card__heading--finale glitch-text"
+                data-text="With Great Power...">With Great Power... &#x1F578;&#xFE0F;</h2>
+            <p class="story-card__body story-card__body--quote">
+              "...comes great responsibility."
+            </p>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════
+           STATS SECTION — Animated counters
+           ════════════════════════════════════════════════════════════════ -->
+      <section class="stats" id="stats" aria-label="Spider-Man statistics">
+        <div class="stats__bg-web" aria-hidden="true"></div>
+        <div class="stats__inner">
+          <div class="stat" data-animate>
+            <span class="stat__value counter" data-target="847" data-suffix="+">0</span>
+            <span class="stat__label">VILLAINS DEFEATED</span>
+          </div>
+          <div class="stat" data-animate>
+            <span class="stat__value counter" data-target="12500">0</span>
+            <span class="stat__label">WEBS SPUN</span>
+          </div>
+          <div class="stat" data-animate>
+            <span class="stat__value counter" data-target="5">0</span>
+            <span class="stat__label">BOROUGHS PROTECTED</span>
+          </div>
+          <div class="stat" data-animate>
+            <span class="stat__value counter" data-target="63" data-suffix="">0</span>
+            <span class="stat__label">YEARS OF LEGACY</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════
+           CTA SECTION
+           ════════════════════════════════════════════════════════════════ -->
+      <section class="cta" id="cta" aria-label="Call to action">
+        <div class="cta__inner" data-animate>
+          <h2 class="cta__heading">Ready to Swing? &#x1F578;&#xFE0F;</h2>
+          <p class="cta__text">
+            The night is young and the city needs you. Step into the web,
+            join the story, and discover what it truly means to be a hero.
+          </p>
+          <div class="cta__buttons">
+            <button class="btn btn--primary magnetic-btn" id="restartBtn">ASCEND AGAIN &uarr;</button>
+            <a href="#" class="btn btn--ghost magnetic-btn">Explore the Universe</a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>&copy; 2026 Marvel Narrative Labs &mdash; An Immersive Experience.</p>
+        <p class="footer__tech">Built with Canvas, GSAP & Spider-Sense</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
