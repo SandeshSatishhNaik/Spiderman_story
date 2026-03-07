@@ -719,6 +719,7 @@ button { font-family: inherit; }
   justify-content: flex-start;
   padding: var(--space-xl) clamp(1rem, 5vw, 4rem);
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .story-panel.is-active {

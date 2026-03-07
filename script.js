@@ -31,7 +31,7 @@
   const FRAME_COUNT       = 240;
   const FRAME_PATH        = (i) => `images/ezgif-frame-${String(i).padStart(3, '0')}.png`;
   const SCROLL_PAGES      = 8;     // viewport-heights to scrub all 240 frames
-  const SCRUB_SMOOTHNESS  = 0.5;   // GSAP scrub catch-up duration (seconds)
+  const SCRUB_SMOOTHNESS  = 0.8;   // GSAP scrub catch-up duration (seconds)
   const PRELOAD_BATCH     = 6;     // concurrent image loads per batch
   const FAST_LOAD_COUNT   = 5;     // frames to load before revealing site
   const KEYFRAME_STEP     = 10;    // priority: load every Nth frame after reveal
@@ -257,7 +257,7 @@
    *   Scroll UP   → progress ↓ → frame reverses → time rewinds.
    */
   function initScrollAnimation() {
-    gsap.registerPlugin(ScrollTrigger);
+    gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
     // Hero title: fades out immediately on scroll start
     gsap.to(heroTitle, {
@@ -279,7 +279,6 @@
     gsap.to(frameObj, {
       frame: FRAME_COUNT - 1,
       ease: 'none',
-      snap: 'frame',
       scrollTrigger: {
         trigger: '.hero',
         start: 'top top',
@@ -347,11 +346,9 @@
       }
 
       opacity = Math.max(0, Math.min(1, opacity));
-      el.style.opacity = opacity;
 
-      // Subtle parallax float: panels shift up slightly as they fade in
-      const panelShift = (1 - opacity) * 30;
-      el.style.transform = `translateY(${panelShift}px)`;
+      // Use gsap.set to avoid fighting GSAP's transform cache
+      gsap.set(el, { opacity: opacity, y: (1 - opacity) * 30 });
 
       el.classList.toggle('is-active', opacity > 0.1);
 
@@ -379,8 +376,8 @@
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       particles.push({
-        x: Math.random() * particleCanvas.width,
-        y: Math.random() * particleCanvas.height,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
         vx: (Math.random() - 0.5) * PARTICLE_SPEED,
         vy: (Math.random() - 0.5) * PARTICLE_SPEED,
         r: Math.random() * 1.5 + 0.5,
@@ -391,13 +388,19 @@
   }
 
   function sizeParticleCanvas() {
-    particleCanvas.width  = window.innerWidth;
-    particleCanvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    particleCanvas.width  = w * dpr;
+    particleCanvas.height = h * dpr;
+    particleCanvas.style.width  = w + 'px';
+    particleCanvas.style.height = h + 'px';
+    pCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   function animateParticles() {
-    const w = particleCanvas.width;
-    const h = particleCanvas.height;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
     pCtx.clearRect(0, 0, w, h);
 
@@ -569,25 +572,31 @@
         const cx = rect.width / 2;
         const cy = rect.height / 2;
 
-        // Normalise to -1..1 then scale by intensity
         const rotX = ((y - cy) / cy) * -intensity;
         const rotY = ((x - cx) / cx) * intensity;
 
-        card.style.transform =
-          `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(8px)`;
+        // Use gsap.set for instant response — no transition fighting
+        gsap.set(card, {
+          rotateX: rotX,
+          rotateY: rotY,
+          z: 8,
+          transformPerspective: 800,
+        });
 
-        // Glare position for CSS ::before radial-gradient
         card.style.setProperty('--glare-x', ((x / rect.width) * 100) + '%');
         card.style.setProperty('--glare-y', ((y / rect.height) * 100) + '%');
       });
 
       card.addEventListener('mouseleave', () => {
-        card.style.transition = 'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94)';
-        card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateZ(0)';
-      });
-
-      card.addEventListener('mouseenter', () => {
-        card.style.transition = 'none'; // Instant response while hovering
+        gsap.to(card, {
+          rotateX: 0,
+          rotateY: 0,
+          z: 0,
+          transformPerspective: 800,
+          duration: 0.5,
+          ease: 'power2.out',
+          overwrite: true,
+        });
       });
     });
   }
@@ -612,17 +621,22 @@
         const dx = e.clientX - cx;
         const dy = e.clientY - cy;
 
-        btn.style.transform =
-          `translate(${dx * strength}px, ${dy * strength}px) scale(1.04)`;
+        gsap.set(btn, {
+          x: dx * strength,
+          y: dy * strength,
+          scale: 1.04,
+        });
       });
 
       btn.addEventListener('mouseleave', () => {
-        btn.style.transition = 'transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)';
-        btn.style.transform = 'translate(0,0) scale(1)';
-      });
-
-      btn.addEventListener('mouseenter', () => {
-        btn.style.transition = 'transform 0.12s ease-out';
+        gsap.to(btn, {
+          x: 0,
+          y: 0,
+          scale: 1,
+          duration: 0.4,
+          ease: 'power2.out',
+          overwrite: true,
+        });
       });
     });
   }
@@ -672,7 +686,7 @@
       start: 'top top',
       end: 'bottom bottom',
       onUpdate: (self) => {
-        scrollProgress.style.width = (self.progress * 100) + '%';
+        gsap.set(scrollProgress, { width: (self.progress * 100) + '%' });
       },
     });
   }
@@ -730,7 +744,7 @@
   }
 
   function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    gsap.to(window, { scrollTo: 0, duration: 1.5, ease: 'power2.inOut' });
   }
 
   function toggleMobileNav() {
@@ -802,12 +816,18 @@
       initCardTilt('.tilt-card', 8);
       initMagneticButtons('.magnetic-btn', 0.3);
 
-      // Resize
-      window.addEventListener('resize', debounce(() => {
-        sizeCanvas();
-        sizeParticleCanvas();
-        ScrollTrigger.refresh();
-      }, 200));
+      // Resize — rAF-throttled for instant response without batching lag
+      let resizePending = false;
+      window.addEventListener('resize', () => {
+        if (resizePending) return;
+        resizePending = true;
+        requestAnimationFrame(() => {
+          sizeCanvas();
+          sizeParticleCanvas();
+          ScrollTrigger.refresh();
+          resizePending = false;
+        });
+      });
 
       // UI bindings
       if (restartBtn) restartBtn.addEventListener('click', scrollToTop);
