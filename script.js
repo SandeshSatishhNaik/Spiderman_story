@@ -33,6 +33,7 @@
   const SCROLL_PAGES      = 8;     // viewport-heights to scrub all 240 frames
   const SCRUB_SMOOTHNESS  = 0.5;   // GSAP scrub catch-up duration (seconds)
   const PRELOAD_BATCH     = 20;    // concurrent image loads per batch
+  const FAST_LOAD_COUNT   = 30;    // frames to load before revealing site
 
   // Particle web config
   const PARTICLE_COUNT    = 60;
@@ -83,39 +84,71 @@
    * Each batch runs concurrent Promise.all internally, preventing
    * browser connection-pool flooding.
    */
-  function preloadImages() {
+  /**
+   * Phase 1: Loads the first FAST_LOAD_COUNT frames quickly so the site
+   *          can be revealed. The loader bar shows progress for this phase.
+   * Phase 2: After the site is visible, continues loading the remaining
+   *          frames in the background without blocking interaction.
+   */
+  function loadOne(allImages, index) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = FRAME_PATH(index);
+      img.onload = () => { allImages[index - 1] = img; resolve(img); };
+      img.onerror = () => {
+        console.warn(`[Preloader] Frame ${index} failed.`);
+        allImages[index - 1] = img;
+        resolve(img);
+      };
+    });
+  }
+
+  function updateLoaderUI(loaded, total) {
+    const pct = Math.round((loaded / total) * 100);
+    loaderBar.style.width = pct + '%';
+    loaderPercent.textContent = pct + '%';
+    loader.setAttribute('aria-valuenow', pct);
+  }
+
+  /** Phase 1: load first FAST_LOAD_COUNT frames for quick reveal */
+  function preloadInitialFrames() {
     let loaded = 0;
     const allImages = new Array(FRAME_COUNT);
 
-    function loadOne(index) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.src = FRAME_PATH(index);
-        img.onload = () => { loaded++; updateLoaderUI(loaded); resolve(img); };
-        img.onerror = () => {
-          console.warn(`[Preloader] Frame ${index} failed.`);
-          loaded++; updateLoaderUI(loaded); resolve(img);
-        };
-      });
-    }
-
-    function updateLoaderUI(count) {
-      const pct = Math.round((count / FRAME_COUNT) * 100);
-      loaderBar.style.width = pct + '%';
-      loaderPercent.textContent = pct + '%';
-      loader.setAttribute('aria-valuenow', pct);
-    }
-
     return (async () => {
-      for (let s = 0; s < FRAME_COUNT; s += PRELOAD_BATCH) {
-        const end = Math.min(s + PRELOAD_BATCH, FRAME_COUNT);
+      for (let s = 0; s < FAST_LOAD_COUNT; s += PRELOAD_BATCH) {
+        const end = Math.min(s + PRELOAD_BATCH, FAST_LOAD_COUNT);
         const batch = [];
         for (let i = s; i < end; i++) {
-          batch.push(loadOne(i + 1).then((img) => { allImages[i] = img; }));
+          batch.push(
+            loadOne(allImages, i + 1).then(() => {
+              loaded++;
+              updateLoaderUI(loaded, FAST_LOAD_COUNT);
+            })
+          );
         }
         await Promise.all(batch);
       }
       return allImages;
+    })();
+  }
+
+  /** Phase 2: load remaining frames in background after site is visible */
+  function preloadRemainingFrames(allImages) {
+    (async () => {
+      for (let s = FAST_LOAD_COUNT; s < FRAME_COUNT; s += PRELOAD_BATCH) {
+        const end = Math.min(s + PRELOAD_BATCH, FRAME_COUNT);
+        const batch = [];
+        for (let i = s; i < end; i++) {
+          batch.push(
+            loadOne(allImages, i + 1).then((img) => {
+              // Update the live frames array so scroll animation picks them up
+              frames[i] = img;
+            })
+          );
+        }
+        await Promise.all(batch);
+      }
     })();
   }
 
@@ -136,15 +169,23 @@
   }
 
   /**
-   * Draws a frame with "object-fit: cover" math:
-   *   scale = max(canvasW/imgW, canvasH/imgH)
-   *   offset = centre-crop the overflow
-   * Then overlays a radial-gradient vignette using canvas compositing
-   * (faster than CSS overlay for the canvas layer).
+   * Draws a frame with "object-fit: cover" math.
+   * If the requested frame hasn't loaded yet, falls back to the
+   * nearest available frame (progressive loading support).
    */
   function drawFrame(index) {
-    const img = frames[index];
-    if (!img || !img.naturalWidth) return;
+    let img = frames[index];
+
+    // Fallback: find nearest loaded frame if this one isn't ready
+    if (!img || !img.naturalWidth) {
+      for (let offset = 1; offset <= FRAME_COUNT; offset++) {
+        const before = frames[index - offset];
+        if (before && before.naturalWidth) { img = before; break; }
+        const after = frames[index + offset];
+        if (after && after.naturalWidth) { img = after; break; }
+      }
+      if (!img || !img.naturalWidth) return;
+    }
 
     const imgW = img.naturalWidth;
     const imgH = img.naturalHeight;
@@ -693,22 +734,25 @@
     cachePanels();
 
     try {
-      // Preload
-      const loadedImages = await preloadImages();
-      loadedImages.forEach((img) => frames.push(img));
+      // Phase 1: Load first batch of frames for quick reveal
+      const allImages = await preloadInitialFrames();
+      allImages.forEach((img, i) => { frames[i] = img; });
 
       // Canvas
       sizeCanvas();
       drawFrame(0);
 
       // Brief pause
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 300));
 
       // Reveal
       loader.classList.add('loader--done');
       site.classList.remove('site--hidden');
       site.classList.add('site--visible');
       document.body.style.overflow = '';
+
+      // Phase 2: Load remaining frames in background
+      preloadRemainingFrames(allImages);
 
       // GSAP systems
       initScrollAnimation();
