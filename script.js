@@ -32,8 +32,9 @@
   const FRAME_PATH        = (i) => `images/ezgif-frame-${String(i).padStart(3, '0')}.png`;
   const SCROLL_PAGES      = 8;     // viewport-heights to scrub all 240 frames
   const SCRUB_SMOOTHNESS  = 0.5;   // GSAP scrub catch-up duration (seconds)
-  const PRELOAD_BATCH     = 20;    // concurrent image loads per batch
-  const FAST_LOAD_COUNT   = 30;    // frames to load before revealing site
+  const PRELOAD_BATCH     = 6;     // concurrent image loads per batch
+  const FAST_LOAD_COUNT   = 5;     // frames to load before revealing site
+  const KEYFRAME_STEP     = 10;    // priority: load every Nth frame after reveal
 
   // Particle web config
   const PARTICLE_COUNT    = 60;
@@ -50,7 +51,7 @@
   const loaderPercent  = document.getElementById('loaderPercent');
   const site           = document.getElementById('site');
   const canvas         = document.getElementById('heroCanvas');
-  const ctx            = canvas.getContext('2d');
+  const ctx            = canvas.getContext('2d', { desynchronized: true });
   const heroTitle      = document.getElementById('heroTitle');
   const restartBtn     = document.getElementById('restartBtn');
   const navHamburger   = document.getElementById('navHamburger');
@@ -77,29 +78,34 @@
 
 
   // ════════════════════════════════════════════════════════════════════
-  // 1. IMAGE PRELOADER (Batched)
+  // 1. IMAGE PRELOADER (createImageBitmap + Priority Loading)
   // ════════════════════════════════════════════════════════════════════
   /**
-   * Loads all frames in sequential batches of PRELOAD_BATCH.
-   * Each batch runs concurrent Promise.all internally, preventing
-   * browser connection-pool flooding.
+   * Uses fetch + createImageBitmap to decode images OFF the main thread.
+   * ImageBitmap draws faster on canvas than HTMLImageElement because
+   * decoding is already done. Falls back to Image() for older browsers.
    */
-  /**
-   * Phase 1: Loads the first FAST_LOAD_COUNT frames quickly so the site
-   *          can be revealed. The loader bar shows progress for this phase.
-   * Phase 2: After the site is visible, continues loading the remaining
-   *          frames in the background without blocking interaction.
-   */
-  function loadOne(allImages, index) {
+  const hasBitmapSupport = typeof createImageBitmap === 'function';
+
+  function loadFrame(index) {
+    const url = FRAME_PATH(index);
+
+    if (hasBitmapSupport) {
+      return fetch(url)
+        .then((r) => r.blob())
+        .then((blob) => createImageBitmap(blob))
+        .catch(() => {
+          console.warn(`[Preloader] Frame ${index} failed.`);
+          return null;
+        });
+    }
+
+    // Fallback for browsers without createImageBitmap
     return new Promise((resolve) => {
       const img = new Image();
-      img.src = FRAME_PATH(index);
-      img.onload = () => { allImages[index - 1] = img; resolve(img); };
-      img.onerror = () => {
-        console.warn(`[Preloader] Frame ${index} failed.`);
-        allImages[index - 1] = img;
-        resolve(img);
-      };
+      img.src = url;
+      img.onload = () => resolve(img);
+      img.onerror = () => { console.warn(`[Preloader] Frame ${index} failed.`); resolve(null); };
     });
   }
 
@@ -110,41 +116,73 @@
     loader.setAttribute('aria-valuenow', pct);
   }
 
-  /** Phase 1: load first FAST_LOAD_COUNT frames for quick reveal */
-  function preloadInitialFrames() {
+  /** Phase 1: load first FAST_LOAD_COUNT frames for instant reveal */
+  async function preloadInitialFrames() {
     let loaded = 0;
-    const allImages = new Array(FRAME_COUNT);
 
-    return (async () => {
-      for (let s = 0; s < FAST_LOAD_COUNT; s += PRELOAD_BATCH) {
-        const end = Math.min(s + PRELOAD_BATCH, FAST_LOAD_COUNT);
+    // Load frame 1 first (highest priority — user sees this immediately)
+    const first = await loadFrame(1);
+    frames[0] = first;
+    loaded++;
+    updateLoaderUI(loaded, FAST_LOAD_COUNT);
+
+    // Load frames 2..FAST_LOAD_COUNT concurrently
+    const batch = [];
+    for (let i = 2; i <= FAST_LOAD_COUNT; i++) {
+      batch.push(
+        loadFrame(i).then((bitmap) => {
+          frames[i - 1] = bitmap;
+          loaded++;
+          updateLoaderUI(loaded, FAST_LOAD_COUNT);
+        })
+      );
+    }
+    await Promise.all(batch);
+  }
+
+  /**
+   * Phase 2: background loading with priority strategy:
+   *   a) Keyframes first (every KEYFRAME_STEP-th frame) — so scrolling
+   *      to any position hits a nearby loaded frame fast.
+   *   b) Fill remaining gaps after all keyframes are loaded.
+   */
+  function preloadRemainingFrames() {
+    (async () => {
+      // a) Keyframes: 10, 20, 30, 40 ... 240
+      const keyframes = [];
+      for (let i = FAST_LOAD_COUNT; i < FRAME_COUNT; i += KEYFRAME_STEP) {
+        keyframes.push(i);
+      }
+      // Also include the last frame
+      if (keyframes[keyframes.length - 1] !== FRAME_COUNT - 1) {
+        keyframes.push(FRAME_COUNT - 1);
+      }
+
+      for (let s = 0; s < keyframes.length; s += PRELOAD_BATCH) {
+        const end = Math.min(s + PRELOAD_BATCH, keyframes.length);
         const batch = [];
-        for (let i = s; i < end; i++) {
+        for (let b = s; b < end; b++) {
+          const idx = keyframes[b];
           batch.push(
-            loadOne(allImages, i + 1).then(() => {
-              loaded++;
-              updateLoaderUI(loaded, FAST_LOAD_COUNT);
-            })
+            loadFrame(idx + 1).then((bitmap) => { frames[idx] = bitmap; })
           );
         }
         await Promise.all(batch);
       }
-      return allImages;
-    })();
-  }
 
-  /** Phase 2: load remaining frames in background after site is visible */
-  function preloadRemainingFrames(allImages) {
-    (async () => {
-      for (let s = FAST_LOAD_COUNT; s < FRAME_COUNT; s += PRELOAD_BATCH) {
-        const end = Math.min(s + PRELOAD_BATCH, FRAME_COUNT);
+      // b) Fill all remaining gaps
+      const gaps = [];
+      for (let i = FAST_LOAD_COUNT; i < FRAME_COUNT; i++) {
+        if (!frames[i]) gaps.push(i);
+      }
+
+      for (let s = 0; s < gaps.length; s += PRELOAD_BATCH) {
+        const end = Math.min(s + PRELOAD_BATCH, gaps.length);
         const batch = [];
-        for (let i = s; i < end; i++) {
+        for (let b = s; b < end; b++) {
+          const idx = gaps[b];
           batch.push(
-            loadOne(allImages, i + 1).then((img) => {
-              // Update the live frames array so scroll animation picks them up
-              frames[i] = img;
-            })
+            loadFrame(idx + 1).then((bitmap) => { frames[idx] = bitmap; })
           );
         }
         await Promise.all(batch);
@@ -170,25 +208,28 @@
 
   /**
    * Draws a frame with "object-fit: cover" math.
-   * If the requested frame hasn't loaded yet, falls back to the
-   * nearest available frame (progressive loading support).
+   * Supports both ImageBitmap (.width) and HTMLImageElement (.naturalWidth).
+   * Falls back to nearest loaded frame if requested one isn't ready yet.
    */
+  function isReady(f) {
+    if (!f) return false;
+    return f.width > 0; // works for both ImageBitmap and decoded HTMLImageElement
+  }
+
   function drawFrame(index) {
     let img = frames[index];
 
-    // Fallback: find nearest loaded frame if this one isn't ready
-    if (!img || !img.naturalWidth) {
+    // Fallback: find nearest loaded frame
+    if (!isReady(img)) {
       for (let offset = 1; offset <= FRAME_COUNT; offset++) {
-        const before = frames[index - offset];
-        if (before && before.naturalWidth) { img = before; break; }
-        const after = frames[index + offset];
-        if (after && after.naturalWidth) { img = after; break; }
+        if (isReady(frames[index - offset])) { img = frames[index - offset]; break; }
+        if (isReady(frames[index + offset])) { img = frames[index + offset]; break; }
       }
-      if (!img || !img.naturalWidth) return;
+      if (!isReady(img)) return;
     }
 
-    const imgW = img.naturalWidth;
-    const imgH = img.naturalHeight;
+    const imgW = img.naturalWidth || img.width;
+    const imgH = img.naturalHeight || img.height;
     const scale = Math.max(canvasW / imgW, canvasH / imgH);
     const drawW = imgW * scale;
     const drawH = imgH * scale;
@@ -254,7 +295,7 @@
         const idx = Math.round(frameObj.frame);
         if (idx !== currentFrame) {
           currentFrame = idx;
-          requestAnimationFrame(() => drawFrame(currentFrame));
+          drawFrame(currentFrame);
         }
       },
     });
@@ -433,6 +474,10 @@
     // Show the follower
     mouseFollower.classList.add('is-active');
 
+    // gsap.quickTo creates a reusable tween — zero GC allocation per frame
+    const followerX = gsap.quickTo(mouseFollower, 'x', { duration: 0.4, ease: 'power2.out' });
+    const followerY = gsap.quickTo(mouseFollower, 'y', { duration: 0.4, ease: 'power2.out' });
+
     document.addEventListener('mousemove', (e) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
@@ -446,6 +491,10 @@
       document.documentElement.style.setProperty('--mouse-y', ny);
       document.documentElement.style.setProperty('--mouse-cx', nx - 0.5);
       document.documentElement.style.setProperty('--mouse-cy', ny - 0.5);
+
+      // Drive follower — just call the quickTo functions
+      followerX(mouseX);
+      followerY(mouseY);
     });
 
     document.addEventListener('mouseleave', () => {
@@ -456,18 +505,6 @@
 
     document.addEventListener('mouseenter', () => {
       mouseFollower.classList.add('is-active');
-    });
-
-    // Smooth follower movement via GSAP ticker (runs every frame)
-    gsap.ticker.add(() => {
-      if (mouseX < 0) return;
-      gsap.to(mouseFollower, {
-        x: mouseX,
-        y: mouseY,
-        duration: 0.5,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      });
     });
 
     // Intensify follower on interactive elements
@@ -490,20 +527,22 @@
     const els = gsap.utils.toArray('[data-mouse-react]');
     if (!els.length) return;
 
+    // Pre-create quickTo tweens for each element — zero allocation per frame
+    const quickTweens = els.map((el) => ({
+      el,
+      intensity: parseFloat(el.dataset.mouseReact) || 10,
+      qx: gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power2.out' }),
+      qy: gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power2.out' }),
+    }));
+
     gsap.ticker.add(() => {
       if (mouseX < 0) return;
-      const nx = mouseX / window.innerWidth - 0.5;   // -0.5 → 0.5
+      const nx = mouseX / window.innerWidth - 0.5;
       const ny = mouseY / window.innerHeight - 0.5;
 
-      els.forEach((el) => {
-        const intensity = parseFloat(el.dataset.mouseReact) || 10;
-        gsap.to(el, {
-          x: nx * -intensity,
-          y: ny * -intensity,
-          duration: 0.6,
-          ease: 'power2.out',
-          overwrite: 'auto',
-        });
+      quickTweens.forEach(({ intensity, qx, qy }) => {
+        qx(nx * -intensity);
+        qy(ny * -intensity);
       });
     });
   }
@@ -734,25 +773,21 @@
     cachePanels();
 
     try {
-      // Phase 1: Load first batch of frames for quick reveal
-      const allImages = await preloadInitialFrames();
-      allImages.forEach((img, i) => { frames[i] = img; });
+      // Phase 1: Load first few frames for instant reveal
+      await preloadInitialFrames();
 
       // Canvas
       sizeCanvas();
       drawFrame(0);
 
-      // Brief pause
-      await new Promise((r) => setTimeout(r, 300));
-
-      // Reveal
+      // Reveal immediately — no artificial delay
       loader.classList.add('loader--done');
       site.classList.remove('site--hidden');
       site.classList.add('site--visible');
       document.body.style.overflow = '';
 
-      // Phase 2: Load remaining frames in background
-      preloadRemainingFrames(allImages);
+      // Phase 2: Load remaining frames in background (keyframes first)
+      preloadRemainingFrames();
 
       // GSAP systems
       initScrollAnimation();
