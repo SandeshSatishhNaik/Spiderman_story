@@ -300,6 +300,31 @@
     });
   }
 
+  function initNavSmoothScroll() {
+    document.querySelectorAll('.nav__link[href^="#section-"]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        const targetId = link.getAttribute('href').substring(1);
+        const targetPanel = document.getElementById(targetId);
+        const hero = document.querySelector('.hero');
+        if (!targetPanel || !hero) return;
+
+        const appear = parseFloat(targetPanel.dataset.appear || 0);
+        const heroHeight = hero.offsetHeight;
+        const scrollTarget = hero.offsetTop + (appear * heroHeight) + (0.03 * heroHeight);
+
+        gsap.to(window, {
+          scrollTo: { y: scrollTarget, autoKill: true },
+          duration: 1.2,
+          ease: 'power2.inOut',
+        });
+
+        if (navLinks.classList.contains('is-open')) toggleMobileNav();
+      });
+    });
+  }
+
 
   // ════════════════════════════════════════════════════════════════════
   // 4. STORY PANEL VISIBILITY (Scroll-Progress Driven)
@@ -805,6 +830,7 @@
 
       // GSAP systems
       initScrollAnimation();
+      initNavSmoothScroll();
       initScrollProgress();
       initNavScroll();
       initCardObserver();
@@ -834,12 +860,11 @@
 
       if (navHamburger && navLinks) {
         navHamburger.addEventListener('click', toggleMobileNav);
-        navLinks.querySelectorAll('a').forEach((link) => {
-          link.addEventListener('click', () => {
-            if (navLinks.classList.contains('is-open')) toggleMobileNav();
-          });
-        });
       }
+
+      document.querySelectorAll('a[href="#"]').forEach((link) => {
+        link.addEventListener('click', (e) => e.preventDefault());
+      });
 
     } catch (err) {
       console.error('[Spider-Man] Init failed:', err);

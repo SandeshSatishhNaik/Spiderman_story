@@ -711,15 +711,19 @@ button { font-family: inherit; }
    STORY PANELS — Floating 3D cards over the canvas
    ═══════════════════════════════════════════════════════════════════════ */
 .story-panel {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
   z-index: 10;
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   padding: var(--space-xl) clamp(1rem, 5vw, 4rem);
   pointer-events: none;
   will-change: transform, opacity;
+  opacity: 0;
 }
 
 .story-panel.is-active {
