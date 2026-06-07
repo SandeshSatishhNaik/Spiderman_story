@@ -40,7 +40,7 @@
   const PARTICLE_COUNT    = 60;
   const PARTICLE_CONNECT  = 120;   // max distance (px) to draw thread between particles
   const PARTICLE_SPEED    = 0.25;
-
+  const TWO_PI            = Math.PI * 2;
 
   // ════════════════════════════════════════════════════════════════════
   // DOM REFERENCES
@@ -417,7 +417,7 @@
       // Draw particle dot
       pCtx.beginPath();
       pCtx.fillStyle = 'rgba(237, 29, 36, 0.25)';
-      pCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      pCtx.arc(p.x, p.y, p.r, 0, TWO_PI);
       pCtx.fill();
     }
 
