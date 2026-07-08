@@ -116,78 +116,31 @@
     loader.setAttribute('aria-valuenow', pct);
   }
 
-  /** Phase 1: load first FAST_LOAD_COUNT frames for instant reveal */
-  async function preloadInitialFrames() {
+  /** Load all frames before revealing site to prevent lag. */
+  async function preloadAllFrames() {
     let loaded = 0;
 
-    // Load frame 1 first (highest priority — user sees this immediately)
+    // Load frame 1 first
     const first = await loadFrame(1);
     frames[0] = first;
     loaded++;
-    updateLoaderUI(loaded, FAST_LOAD_COUNT);
+    updateLoaderUI(loaded, FRAME_COUNT);
 
-    // Load frames 2..FAST_LOAD_COUNT concurrently
-    const batch = [];
-    for (let i = 2; i <= FAST_LOAD_COUNT; i++) {
-      batch.push(
-        loadFrame(i).then((bitmap) => {
-          frames[i - 1] = bitmap;
-          loaded++;
-          updateLoaderUI(loaded, FAST_LOAD_COUNT);
-        })
-      );
+    // Load the rest in batches
+    for (let s = 2; s <= FRAME_COUNT; s += PRELOAD_BATCH) {
+      const end = Math.min(s + PRELOAD_BATCH - 1, FRAME_COUNT);
+      const batch = [];
+      for (let i = s; i <= end; i++) {
+        batch.push(
+          loadFrame(i).then((bitmap) => {
+            frames[i - 1] = bitmap;
+            loaded++;
+            updateLoaderUI(loaded, FRAME_COUNT);
+          })
+        );
+      }
+      await Promise.all(batch);
     }
-    await Promise.all(batch);
-  }
-
-  /**
-   * Phase 2: background loading with priority strategy:
-   *   a) Keyframes first (every KEYFRAME_STEP-th frame) — so scrolling
-   *      to any position hits a nearby loaded frame fast.
-   *   b) Fill remaining gaps after all keyframes are loaded.
-   */
-  function preloadRemainingFrames() {
-    (async () => {
-      // a) Keyframes: 10, 20, 30, 40 ... 240
-      const keyframes = [];
-      for (let i = FAST_LOAD_COUNT; i < FRAME_COUNT; i += KEYFRAME_STEP) {
-        keyframes.push(i);
-      }
-      // Also include the last frame
-      if (keyframes[keyframes.length - 1] !== FRAME_COUNT - 1) {
-        keyframes.push(FRAME_COUNT - 1);
-      }
-
-      for (let s = 0; s < keyframes.length; s += PRELOAD_BATCH) {
-        const end = Math.min(s + PRELOAD_BATCH, keyframes.length);
-        const batch = [];
-        for (let b = s; b < end; b++) {
-          const idx = keyframes[b];
-          batch.push(
-            loadFrame(idx + 1).then((bitmap) => { frames[idx] = bitmap; })
-          );
-        }
-        await Promise.all(batch);
-      }
-
-      // b) Fill all remaining gaps
-      const gaps = [];
-      for (let i = FAST_LOAD_COUNT; i < FRAME_COUNT; i++) {
-        if (!frames[i]) gaps.push(i);
-      }
-
-      for (let s = 0; s < gaps.length; s += PRELOAD_BATCH) {
-        const end = Math.min(s + PRELOAD_BATCH, gaps.length);
-        const batch = [];
-        for (let b = s; b < end; b++) {
-          const idx = gaps[b];
-          batch.push(
-            loadFrame(idx + 1).then((bitmap) => { frames[idx] = bitmap; })
-          );
-        }
-        await Promise.all(batch);
-      }
-    })();
   }
 
 
@@ -787,21 +740,18 @@
     cachePanels();
 
     try {
-      // Phase 1: Load first few frames for instant reveal
-      await preloadInitialFrames();
+      // Load all frames to prevent lag on initial scrolling
+      await preloadAllFrames();
 
       // Canvas
       sizeCanvas();
       drawFrame(0);
 
-      // Reveal immediately — no artificial delay
+      // Reveal once completely loaded
       loader.classList.add('loader--done');
       site.classList.remove('site--hidden');
       site.classList.add('site--visible');
       document.body.style.overflow = '';
-
-      // Phase 2: Load remaining frames in background (keyframes first)
-      preloadRemainingFrames();
 
       // GSAP systems
       initScrollAnimation();
