@@ -1,298 +1,325 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" class="no-js">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spider-Man: Into the Night — A Marvel Cinematic Experience</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Into the Night · A Spider-Man fan film</title>
+  <meta name="description" content="An unofficial Spider-Man fan film in three acts, played by scrolling through 240 frames above Eighth Avenue, followed by the morning edition of the Daily Bugle.">
+  <link rel="canonical" href="https://spiderman-story.vercel.app/">
+  <meta name="theme-color" content="#000000">
 
-  <!-- SEO Meta -->
-  <meta name="description" content="Dive into the dark, neon-lit streets of Marvel's New York. Experience Spider-Man's story through an immersive, scroll-driven cinematic journey." />
-  <meta name="keywords" content="Spider-Man, Marvel, cinematic experience, interactive storytelling, web-slinger, New York City, superhero" />
-  <meta name="author" content="Marvel Narrative Labs" />
-  <meta name="robots" content="index, follow" />
-  <meta name="theme-color" content="#0a0a0f" />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Into the Night">
+  <meta property="og:title" content="Into the Night · A Spider-Man fan film">
+  <meta property="og:description" content="Three acts, 240 frames, one night above Eighth Avenue. Scroll to play.">
+  <meta property="og:url" content="https://spiderman-story.vercel.app/">
+  <meta property="og:image" content="https://spiderman-story.vercel.app/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Title card: Spider-Man, Into the Night, over a rooftop view of a Manhattan intersection at night.">
+  <meta name="twitter:card" content="summary_large_image">
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Spider-Man: Into the Night" />
-  <meta property="og:description" content="An immersive, scroll-driven cinematic journey through Spider-Man's neon-drenched New York." />
-  <meta property="og:type" content="website" />
-  <meta property="og:image" content="images/ezgif-frame-001.png" />
-  <meta property="og:url" content="https://spiderman-intothenight.marvel.com" />
-  <meta property="og:site_name" content="Spider-Man: Into the Night" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Spider-Man: Into the Night" />
-  <meta name="twitter:description" content="An immersive, scroll-driven cinematic journey through Spider-Man's New York." />
-  <meta name="twitter:image" content="images/ezgif-frame-001.png" />
+  <!-- Decide film or reading mode before first paint. Film needs JS and
+       createImageBitmap; reduced motion and Save-Data default to reading. -->
+  <script>
+    (function (root) {
+      root.classList.replace('no-js', 'js');
+      function pick() {
+        var asked = new URLSearchParams(location.search).get('mode');
+        if (asked === 'film' || asked === 'read') return asked;
+        try {
+          var saved = localStorage.getItem('itn:mode');
+          if (saved === 'film' || saved === 'read') return saved;
+        } catch (e) {}
+        var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var lean = navigator.connection && navigator.connection.saveData;
+        return calm || lean ? 'read' : 'film';
+      }
+      var mode = pick();
+      if (mode === 'film' && !('createImageBitmap' in window)) mode = 'read';
+      root.dataset.mode = mode;
+      // If the film engine never boots (blocked or failed module), fall back.
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!window.ITN_BOOTED) root.dataset.mode = 'read';
+      });
+    })(document.documentElement);
+  </script>
+  <script nomodule>document.documentElement.dataset.mode = 'read';</script>
 
-  <!-- Preload first frame so it's ready before JS runs -->
-  <link rel="preload" href="images/ezgif-frame-001.png" as="image" fetchpriority="high" />
-  <link rel="preload" href="images/ezgif-frame-002.png" as="image" />
-  <link rel="preload" href="images/ezgif-frame-003.png" as="image" />
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- GSAP + ScrollTrigger + ScrollTo -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js" defer></script>
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,500..900&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,300..500&display=swap">
+  <link rel="stylesheet" href="css/site.css">
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
+  <a class="skip" href="#bugle">Skip the film</a>
 
-  <!-- ════════════════════════════════════════════════════════════════════
-       LOADING SCREEN — Spider-Sense Radar
-       ════════════════════════════════════════════════════════════════════ -->
-  <div id="loader" aria-label="Loading cinematic experience" role="progressbar"
-       aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    <div class="loader__inner">
-
-      <!-- Animated hexagonal radar -->
-      <div class="loader__radar">
-        <div class="loader__hex-ring loader__hex-ring--1"></div>
-        <div class="loader__hex-ring loader__hex-ring--2"></div>
-        <div class="loader__hex-ring loader__hex-ring--3"></div>
-        <div class="loader__sweep"></div>
-        <div class="loader__spider-icon">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="50" cy="36" rx="12" ry="14" fill="#ED1D24"/>
-            <ellipse cx="50" cy="60" rx="16" ry="18" fill="#ED1D24"/>
-            <path d="M34 36 Q14 18 4 6" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M36 44 Q16 38 4 30" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M36 54 Q16 60 4 66" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M38 64 Q20 76 8 90" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M66 36 Q86 18 96 6" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M64 44 Q84 38 96 30" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M64 54 Q84 60 96 66" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M62 64 Q80 76 92 90" stroke="#ED1D24" stroke-width="2" fill="none" stroke-linecap="round"/>
-          </svg>
-        </div>
-      </div>
-
-      <p class="loader__text">SPIDER-SENSE INITIALIZING</p>
-      <div class="loader__bar-track">
-        <div class="loader__bar-fill" id="loaderBar"></div>
-      </div>
-      <p class="loader__percent" id="loaderPercent">0%</p>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════════════════
-       SCROLL PROGRESS INDICATOR — Thin bar at top of viewport
-       ════════════════════════════════════════════════════════════════════ -->
-  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
-
-  <!-- ════════════════════════════════════════════════════════════════════
-       MOUSE FOLLOWER — Reactive glow that trails the cursor
-       ════════════════════════════════════════════════════════════════════ -->
-  <div class="mouse-follower" id="mouseFollower" aria-hidden="true"></div>
-
-  <!-- ════════════════════════════════════════════════════════════════════
-       PARTICLE WEB CANVAS — Spider-web thread particles over everything
-       ════════════════════════════════════════════════════════════════════ -->
-  <canvas id="webParticles" aria-hidden="true"></canvas>
-
-  <!-- ════════════════════════════════════════════════════════════════════
-       MAIN SITE WRAPPER
-       ════════════════════════════════════════════════════════════════════ -->
-  <div id="site" class="site--hidden">
-
-    <!-- Navigation -->
-    <nav class="nav" id="nav" aria-label="Main navigation">
-      <div class="nav__logo" data-mouse-react="5">
-        <span class="nav__icon" aria-hidden="true">&#x1F577;&#xFE0F;</span>
-        <span class="nav__title">SPIDER-MAN</span>
-      </div>
-      <ul class="nav__links">
-        <li><a href="#section-mask" class="nav__link">The Mask</a></li>
-        <li><a href="#section-city" class="nav__link">The City</a></li>
-        <li><a href="#section-enemies" class="nav__link">Enemies</a></li>
-        <li><a href="#section-finale" class="nav__link nav__link--cta magnetic-btn">Enter the Web</a></li>
-      </ul>
-      <button class="nav__hamburger" id="navHamburger" aria-label="Toggle menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
+  <header class="bar">
+    <a class="bar__brand" href="#film"><span class="bar__rec" aria-hidden="true"></span>Into the Night</a>
+    <nav class="bar__nav" aria-label="Sections">
+      <a class="bar__link bar__link--film" href="#film">The Film</a>
+      <a class="bar__link" href="#bugle">The Bugle</a>
     </nav>
+    <div class="bar__tools">
+      <button class="bar__btn js-mode" type="button" hidden>Read<span class="bar__more"> as text</span></button>
+      <button class="bar__btn js-sound" type="button" aria-pressed="false" data-film-only>
+        <svg class="speaker" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/>
+          <path class="speaker__on" d="M11 5.6a3.4 3.4 0 0 1 0 4.8M12.9 3.6a6.2 6.2 0 0 1 0 8.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="speaker__off" d="M11 6.2l3.6 3.6M14.6 6.2 11 9.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span class="js-sound-label">Sound off</span>
+      </button>
+    </div>
+  </header>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         HERO SECTION — Canvas + Cinematic Overlays
-         ════════════════════════════════════════════════════════════════ -->
-    <main>
-      <section class="hero" id="hero" aria-label="Cinematic scroll sequence">
-        <canvas id="heroCanvas"></canvas>
+  <main id="main">
 
-        <!-- Cinematic vignette + colour grade overlays -->
-        <div class="canvas-vignette" aria-hidden="true"></div>
-        <div class="canvas-color-grade" aria-hidden="true"></div>
+    <!-- ══ THE FILM ═══════════════════════════════════════════════════
+         Reading mode (default, no JS): a title, then three acts with a
+         still and the narration as text. Film mode: the stage sticks,
+         the canvas plays frames by scroll position and each [data-cue]
+         shows while the scroll position is inside its range.
+         data-remap maps scroll position to frame number, so the footage
+         slows down where there is more to read. -->
+    <section class="film" id="film" aria-labelledby="film-title"
+             data-frames="240" data-remap="0:0 0.05:4 0.30:52 0.64:150 0.96:239 1:239">
+      <div class="stage">
+        <canvas class="stage__canvas" aria-hidden="true"></canvas>
+        <div class="stage__shade" aria-hidden="true"></div>
+        <div class="stage__grain" aria-hidden="true"></div>
 
-        <!-- Film grain overlay for texture -->
-        <div class="film-grain" aria-hidden="true"></div>
+        <header class="opening">
+          <p class="opening__eyebrow">An unofficial fan film in three acts</p>
+          <h1 class="opening__title" id="film-title">
+            <span class="opening__name">Spider-Man</span>
+            <span class="opening__sub">Into the Night</span>
+          </h1>
+          <p class="opening__meta">240 frames <span aria-hidden="true">·</span> 3 acts <span aria-hidden="true">·</span> Sound optional</p>
+          <p class="opening__cue" data-film-only>Scroll to play</p>
+        </header>
 
-        <!-- Opening Title Card — fades out on scroll, glitch effect -->
-        <div class="hero__title-card" id="heroTitle">
-          <p class="hero__supertitle" data-mouse-react="8">MARVEL PRESENTS</p>
-          <h1 class="hero__headline glitch-text" data-text="SPIDER-MAN" data-mouse-react="15">SPIDER-MAN</h1>
-          <p class="hero__tagline" data-mouse-react="10">INTO THE NIGHT</p>
-          <div class="hero__scroll-hint">
-            <span>SCROLL TO DESCEND</span>
-            <div class="hero__scroll-arrows">
-              <div class="hero__scroll-arrow"></div>
-              <div class="hero__scroll-arrow"></div>
-              <div class="hero__scroll-arrow"></div>
+        <article class="act" id="act-1" aria-labelledby="act-1-title" data-span="0.05 0.30">
+          <picture class="act__still">
+            <source media="(max-aspect-ratio: 4/5)" srcset="frames/v1/m/001.webp" width="608" height="1080">
+            <img src="frames/v1/d/001.webp" width="1600" height="900" loading="lazy" decoding="async"
+                 alt="Looking straight down from a rooftop at a Manhattan intersection at night. A police car with its lights on crosses between yellow cabs.">
+          </picture>
+          <div class="act__card" data-cue="0.056 0.104">
+            <p class="act__num">Act I</p>
+            <h2 class="act__title" id="act-1-title">The Street</h2>
+          </div>
+          <p class="act__slug">EXT. Rooftop above 8th Avenue - Night</p>
+          <div class="act__lines">
+            <p class="line" data-cue="0.108 0.160">11:47 p.m. Twelve floors above Eighth Avenue.</p>
+            <p class="line" data-cue="0.164 0.226">From up here the city is mostly light and noise. A cab horn. Somebody laughing outside a bar on 44th.</p>
+            <p class="line" data-cue="0.230 0.296" data-sound="siren">Then a siren turns the corner, and I stop hearing anything else.</p>
+          </div>
+        </article>
+
+        <article class="act" id="act-2" aria-labelledby="act-2-title" data-span="0.30 0.64">
+          <picture class="act__still">
+            <source media="(max-aspect-ratio: 4/5)" srcset="frames/v1/m/120.webp" width="608" height="1080">
+            <img src="frames/v1/d/120.webp" width="1600" height="900" loading="lazy" decoding="async"
+                 alt="Extreme close-up of Spider-Man's mask lens: a honeycomb of hexagons with streetlight glinting through it.">
+          </picture>
+          <div class="act__card" data-cue="0.306 0.354">
+            <p class="act__num">Act II</p>
+            <h2 class="act__title" id="act-2-title">The Lens</h2>
+          </div>
+          <p class="act__slug">Extreme close-up - The lens</p>
+          <div class="act__lines">
+            <p class="line" data-cue="0.358 0.418">Through the lenses, the street breaks into a thousand small windows.</p>
+            <p class="line" data-cue="0.422 0.488">I made them to cut the glare. They also cut out the part of me that wants to go home.</p>
+            <p class="line" data-cue="0.492 0.566" data-sound="sense">Spider-sense has no sound. It's a pressure at the base of my skull that makes the call before I do.</p>
+            <p class="line" data-cue="0.570 0.636">Tonight it hasn't let up since sundown.</p>
+          </div>
+        </article>
+
+        <article class="act" id="act-3" aria-labelledby="act-3-title" data-span="0.64 1.01">
+          <picture class="act__still">
+            <source media="(max-aspect-ratio: 4/5)" srcset="frames/v1/m/225.webp" width="608" height="1080">
+            <img src="frames/v1/d/225.webp" width="1600" height="900" loading="lazy" decoding="async"
+                 alt="Spider-Man's gloved hand grips a ledge beside the back of his web-patterned mask, the street far below.">
+          </picture>
+          <div class="act__card" data-cue="0.646 0.694">
+            <p class="act__num">Act III</p>
+            <h2 class="act__title" id="act-3-title">The Mask</h2>
+          </div>
+          <p class="act__slug">EXT. Ledge, Hell's Kitchen - Continuous</p>
+          <div class="act__lines">
+            <p class="line" data-cue="0.698 0.758">People think the mask is there so they can't see me.</p>
+            <p class="line" data-cue="0.762 0.828">Mostly it's there so I can't see the kid from Queens with a chem test at eight.</p>
+            <p class="line" data-cue="0.832 0.894">Someone I loved told me that power comes with a bill.</p>
+            <p class="line" data-cue="0.898 0.956">Tonight it's due on Eighth Avenue.</p>
+          </div>
+          <div class="fin" data-cue="0.962 1.01" data-sound="fin">
+            <p class="fin__text">To be continued</p>
+            <a class="fin__next" href="#bugle">Read the morning edition</a>
+          </div>
+        </article>
+
+        <div class="hud" data-film-only>
+          <p class="hud__slug js-slug" aria-hidden="true">EXT. Rooftop above 8th Avenue - Night</p>
+          <div class="reel">
+            <ol class="reel__acts">
+              <li style="--a: 0.05; --b: 0.30"><button type="button" data-seek="0.056">I<span> · The Street</span></button></li>
+              <li style="--a: 0.30; --b: 0.64"><button type="button" data-seek="0.306">II<span> · The Lens</span></button></li>
+              <li style="--a: 0.64; --b: 1.00"><button type="button" data-seek="0.646">III<span> · The Mask</span></button></li>
+            </ol>
+            <div class="reel__track js-track" role="slider" tabindex="0" aria-label="Film position"
+                 aria-valuemin="1" aria-valuemax="240" aria-valuenow="1" aria-valuetext="Frame 1 of 240, Act I">
+              <canvas class="reel__buffer" width="240" height="1" aria-hidden="true"></canvas>
+              <span class="reel__tick" style="--at: 0.30" aria-hidden="true"></span>
+              <span class="reel__tick" style="--at: 0.64" aria-hidden="true"></span>
+              <span class="reel__played" aria-hidden="true"></span>
+              <span class="reel__head" aria-hidden="true"></span>
             </div>
           </div>
+          <p class="hud__tc" aria-hidden="true"><span class="js-tc">00:00:00:00</span><span>FR <span class="js-fr">001</span>/240</span></p>
         </div>
-
-        <!-- ════════════════════════════════════════════════════════════
-             FLOATING STORY PANELS — Scroll-progress driven
-             ════════════════════════════════════════════════════════════ -->
-
-        <!-- Section 1: The Burden of the Mask -->
-        <article class="story-panel" id="section-mask"
-                 data-appear="0.12" data-disappear="0.35">
-          <div class="story-card glass tilt-card" data-animate>
-            <div class="story-card__glow" aria-hidden="true"></div>
-            <span class="story-card__number" aria-hidden="true">01</span>
-            <h2 class="story-card__heading">The Burden of the Mask &#x1F577;&#xFE0F;</h2>
-            <div class="story-card__divider"></div>
-            <p class="story-card__body">
-              Beneath the iconic red and blue lies Peter Parker — a kid from Queens
-              who never asked to carry the weight of a city on his shoulders. Every
-              stitch of the mask is sewn with sacrifice: missed birthdays, broken
-              promises, and the ever-present question — <em>"Am I enough?"</em>
-            </p>
-            <p class="story-card__body">
-              The mask isn't just a disguise. It's a boundary between the person he
-              wants to be and the hero New York demands. When the lenses narrow and
-              the spider-sense flares, Peter Parker disappears — and something
-              greater takes his place.
-            </p>
-            <a href="#" class="story-card__cta magnetic-btn">Explore the Origin &rarr;</a>
-          </div>
-        </article>
-
-        <!-- Section 2: The City That Never Sleeps -->
-        <article class="story-panel story-panel--right" id="section-city"
-                 data-appear="0.37" data-disappear="0.60">
-          <div class="story-card glass tilt-card" data-animate>
-            <div class="story-card__glow" aria-hidden="true"></div>
-            <span class="story-card__number" aria-hidden="true">02</span>
-            <h2 class="story-card__heading">The City That Never Sleeps &#x1F303;</h2>
-            <div class="story-card__divider"></div>
-            <p class="story-card__body">
-              Manhattan's skyline is both his playground and his prison. Between the
-              neon glow of Times Square and the shadowed alleys of Hell's Kitchen,
-              Spider-Man swings through a living, breathing organism of eight million
-              souls — each one a thread in the web he's sworn to protect.
-            </p>
-            <p class="story-card__body">
-              Taxi horns become his symphony. Police sirens, his call to action. The
-              city doesn't sleep because it can't — and neither can the hero perched
-              on its highest gargoyle, watching, waiting, ready.
-            </p>
-            <a href="#" class="story-card__cta magnetic-btn">Map the Boroughs &rarr;</a>
-          </div>
-        </article>
-
-        <!-- Section 3: A Web of Enemies -->
-        <article class="story-panel" id="section-enemies"
-                 data-appear="0.62" data-disappear="0.86">
-          <div class="story-card glass tilt-card" data-animate>
-            <div class="story-card__glow" aria-hidden="true"></div>
-            <span class="story-card__number" aria-hidden="true">03</span>
-            <h2 class="story-card__heading">A Web of Enemies &#x1F9B9;&zwj;&#x2642;&#xFE0F;</h2>
-            <div class="story-card__divider"></div>
-            <p class="story-card__body">
-              Every hero is defined by their villains, and Spider-Man's rogues
-              gallery is relentless. The Green Goblin's cackling descent from the
-              dark sky. Doc Ock's tentacles crashing through concrete. Venom — the
-              nightmare that wears Peter's own face.
-            </p>
-            <p class="story-card__body">
-              They don't just threaten his body — they fracture his mind. Kingpin
-              dismantles his life piece by piece. Mysterio warps reality until truth
-              is just another illusion. In this web, every thread leads to a trap —
-              and the spider is always at the centre.
-            </p>
-            <a href="#" class="story-card__cta magnetic-btn">Meet the Sinister Six &rarr;</a>
-          </div>
-        </article>
-
-        <!-- Closing Quote -->
-        <article class="story-panel story-panel--centre" id="section-finale"
-                 data-appear="0.88" data-disappear="1.0">
-          <div class="story-card glass story-card--finale tilt-card" data-animate>
-            <div class="story-card__glow" aria-hidden="true"></div>
-            <h2 class="story-card__heading story-card__heading--finale glitch-text"
-                data-text="With Great Power...">With Great Power... &#x1F578;&#xFE0F;</h2>
-            <p class="story-card__body story-card__body--quote">
-              "...comes great responsibility."
-            </p>
-          </div>
-        </article>
-
-      </section>
-
-      <!-- ════════════════════════════════════════════════════════════════
-           STATS SECTION — Animated counters
-           ════════════════════════════════════════════════════════════════ -->
-      <section class="stats" id="stats" aria-label="Spider-Man statistics">
-        <div class="stats__bg-web" aria-hidden="true"></div>
-        <div class="stats__inner">
-          <div class="stat" data-animate>
-            <span class="stat__value counter" data-target="847" data-suffix="+">0</span>
-            <span class="stat__label">VILLAINS DEFEATED</span>
-          </div>
-          <div class="stat" data-animate>
-            <span class="stat__value counter" data-target="12500">0</span>
-            <span class="stat__label">WEBS SPUN</span>
-          </div>
-          <div class="stat" data-animate>
-            <span class="stat__value counter" data-target="5">0</span>
-            <span class="stat__label">BOROUGHS PROTECTED</span>
-          </div>
-          <div class="stat" data-animate>
-            <span class="stat__value counter" data-target="63" data-suffix="">0</span>
-            <span class="stat__label">YEARS OF LEGACY</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- ════════════════════════════════════════════════════════════════
-           CTA SECTION
-           ════════════════════════════════════════════════════════════════ -->
-      <section class="cta" id="cta" aria-label="Call to action">
-        <div class="cta__inner" data-animate>
-          <h2 class="cta__heading">Ready to Swing? &#x1F578;&#xFE0F;</h2>
-          <p class="cta__text">
-            The night is young and the city needs you. Step into the web,
-            join the story, and discover what it truly means to be a hero.
-          </p>
-          <div class="cta__buttons">
-            <button class="btn btn--primary magnetic-btn" id="restartBtn">ASCEND AGAIN &uarr;</button>
-            <a href="#" class="btn btn--ghost magnetic-btn">Explore the Universe</a>
-          </div>
-        </div>
-      </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <div class="footer__inner">
-        <p>&copy; 2026 Marvel Narrative Labs &mdash; An Immersive Experience.</p>
-        <p class="footer__tech">Built with Canvas, GSAP & Spider-Sense</p>
       </div>
-    </footer>
-  </div>
+    </section>
 
-  <script src="script.js"></script>
+    <!-- ══ THE MORNING EDITION ════════════════════════════════════════ -->
+    <section class="bugle" id="bugle" aria-labelledby="bugle-name">
+      <div class="bugle__edge" aria-hidden="true"></div>
+      <div class="paper">
+
+        <header class="masthead">
+          <p class="masthead__ear"><b>Late City Edition</b><span>Clear tonight. Low 49°.</span></p>
+          <h2 class="masthead__name" id="bugle-name"><span class="masthead__the">The</span> Daily Bugle</h2>
+          <p class="masthead__ear masthead__ear--r"><b>25¢</b><span>Exclusive photos by Parker</span></p>
+          <p class="masthead__strip">
+            <span>Vol. <span class="js-vol">LXIV</span></span>
+            <span class="js-date"></span>
+            <span>New York's finest daily newspaper</span>
+          </p>
+        </header>
+
+        <article class="lead" aria-labelledby="lead-head">
+          <h3 class="lead__head" id="lead-head">Wall-Crawler Stalks Eighth Ave.</h3>
+          <figure class="lead__photo">
+            <img src="img/bugle-ledge.webp" width="1200" height="800" loading="lazy" decoding="async"
+                 alt="Halftone newspaper photo: a gloved hand grips a ledge beside the back of Spider-Man's web-patterned mask.">
+            <figcaption>The self-described friendly neighborhood vigilante on a ledge above W. 44th St., 11:47 p.m. last night. <span class="credit">Photo: Peter Parker for the Daily Bugle</span></figcaption>
+          </figure>
+          <div class="lead__text">
+            <p class="lead__deck">Masked vigilante seen crouched above Hell's Kitchen for a third straight night. Police report no crime. The publisher says that is exactly what worries him.</p>
+            <p class="byline">By Ben Urich, Staff Reporter</p>
+            <p class="lead__first"><span class="dateline">Hell's Kitchen.</span> For the third night running, residents of West 44th Street looked up and found the so-called Spider-Man looking back down. Witnesses put the masked figure on a ledge twelve floors above Eighth Avenue, motionless for long stretches, “like he was listening for something.”</p>
+            <p>Shortly before midnight a patrol car answered a call two blocks south. By the time officers arrived, the suspect had been webbed to a lamppost with a note attached. The ledge was empty.</p>
+            <p>The NYPD declined to say whether it is investigating the vigilante, the suspect or the lamppost.</p>
+          </div>
+        </article>
+
+        <aside class="editorial" aria-labelledby="ed-head">
+          <p class="kicker">Editorial</p>
+          <h3 class="editorial__head" id="ed-head">Threat or Menace?</h3>
+          <p class="byline">J. Jonah Jameson, Publisher</p>
+          <p>Readers write in every week asking why this newspaper never prints a kind word about the web-slinger. Here is one: brief. He was brief. Swung in, swung out, and left a public lamppost glued shut for the taxpayers to scrape clean.</p>
+          <p>A hero shows his face. A hero files a report. A hero does not hide behind a mask and a fistful of string.</p>
+          <p>The Bugle will keep asking the question. You are welcome to keep getting the answer wrong.</p>
+        </aside>
+
+        <section class="file" aria-labelledby="file-head">
+          <header class="file__header">
+            <p class="kicker">On file</p>
+            <h3 class="file__head" id="file-head">The Sinister Six</h3>
+            <p class="file__deck">The original lineup, first teamed up in <cite>The Amazing Spider-Man Annual</cite> #1 (1964). Ordered by first appearance.</p>
+          </header>
+          <ol class="file__grid">
+            <li class="rogue">
+              <p class="rogue__caption">First seen May 1963</p>
+              <p class="rogue__issue"><abbr title="The Amazing Spider-Man">ASM</abbr> #2</p>
+              <h4 class="rogue__alias">Vulture</h4>
+              <p class="rogue__name">Adrian Toomes</p>
+              <p class="rogue__note">Flies on an electromagnetic wing harness he built himself. Retired engineer. Not retired.</p>
+            </li>
+            <li class="rogue">
+              <p class="rogue__caption">First seen July 1963</p>
+              <p class="rogue__issue"><abbr title="The Amazing Spider-Man">ASM</abbr> #3</p>
+              <h4 class="rogue__alias">Doctor Octopus</h4>
+              <p class="rogue__name">Otto Octavius</p>
+              <p class="rogue__note">Four mechanical arms, fused to his body in a lab accident. Thinks faster than all four.</p>
+            </li>
+            <li class="rogue">
+              <p class="rogue__caption">First seen Sept. 1963</p>
+              <p class="rogue__issue"><abbr title="The Amazing Spider-Man">ASM</abbr> #4</p>
+              <h4 class="rogue__alias">Sandman</h4>
+              <p class="rogue__name">Flint Marko</p>
+              <p class="rogue__note">Body of living sand. Bullets pass through. So do handcuffs.</p>
+            </li>
+            <li class="rogue">
+              <p class="rogue__caption">First seen Feb. 1964</p>
+              <p class="rogue__issue"><abbr title="The Amazing Spider-Man">ASM</abbr> #9</p>
+              <h4 class="rogue__alias">Electro</h4>
+              <p class="rogue__name">Max Dillon</p>
+              <p class="rogue__note">Former power lineman. Carries enough charge to black out a borough.</p>
+            </li>
+            <li class="rogue">
+              <p class="rogue__caption">First seen June 1964</p>
+              <p class="rogue__issue"><abbr title="The Amazing Spider-Man">ASM</abbr> #13</p>
+              <h4 class="rogue__alias">Mysterio</h4>
+              <p class="rogue__name">Quentin Beck</p>
+              <p class="rogue__note">Special-effects man. Assume nothing you see is real.</p>
+            </li>
+            <li class="rogue">
+              <p class="rogue__caption">First seen Aug. 1964</p>
+              <p class="rogue__issue"><abbr title="The Amazing Spider-Man">ASM</abbr> #15</p>
+              <h4 class="rogue__alias">Kraven the Hunter</h4>
+              <p class="rogue__name">Sergei Kravinoff</p>
+              <p class="rogue__note">Big-game hunter who decided the wall-crawler is the last game worth hunting.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="morgue" aria-labelledby="morgue-head">
+          <header class="morgue__header">
+            <p class="kicker">From the morgue</p>
+            <h3 class="morgue__head" id="morgue-head"><span class="js-years">64</span> years on the beat</h3>
+          </header>
+          <ol class="morgue__list">
+            <li><time datetime="1962-08">1962</time><h4><cite>Amazing Fantasy</cite> #15</h4><p>Stan Lee and Steve Ditko introduce Peter Parker in the last issue of a cancelled anthology.</p></li>
+            <li><time datetime="1963-03">1963</time><h4><cite>The Amazing Spider-Man</cite> #1</h4><p>The kid from Queens gets a series of his own.</p></li>
+            <li><time datetime="1967-09">1967</time><h4><cite>Spider-Man</cite> on ABC</h4><p>The Saturday-morning cartoon debuts, along with a theme song nobody has forgotten since.</p></li>
+            <li><time datetime="1973-06">1973</time><h4><cite>The Amazing Spider-Man</cite> #121</h4><p>Gwen Stacy dies, and superhero comics stop feeling safe.</p></li>
+            <li><time datetime="1984-05">1984</time><h4><cite>The Amazing Spider-Man</cite> #252</h4><p>The black costume arrives. It turns out to be alive.</p></li>
+            <li><time datetime="1988-05">1988</time><h4><cite>The Amazing Spider-Man</cite> #300</h4><p>Venom makes his first full appearance.</p></li>
+            <li><time datetime="2002-05">2002</time><h4><cite>Spider-Man</cite> in theaters</h4><p>Sam Raimi's film opens to a then-record $114 million weekend.</p></li>
+            <li><time datetime="2011-08">2011</time><h4><cite>Ultimate Fallout</cite> #4</h4><p>Miles Morales puts on the mask.</p></li>
+            <li><time datetime="2018-12">2018</time><h4><cite>Into the Spider-Verse</cite></h4><p>Wins the Academy Award for Best Animated Feature.</p></li>
+          </ol>
+        </section>
+
+        <section class="classifieds" aria-labelledby="cl-head">
+          <h3 class="kicker" id="cl-head">Classifieds</h3>
+          <p class="ad"><b>Photographer wanted.</b> Must get clear pictures of Spider-Man. Steady nerves, own camera. Pay negotiable, within reason. Apply 39th floor, ask for Robbie.</p>
+          <p class="ad"><b>Room for rent.</b> Forest Hills, Queens. Quiet street, home cooking, wheat cakes on Sundays. Nephews preferred.</p>
+          <p class="ad"><b>Lost.</b> One camera strap, slightly sticky. Last seen near W. 44th St. Reward.</p>
+        </section>
+
+        <footer class="colophon" aria-labelledby="colophon-head">
+          <h3 class="kicker" id="colophon-head">About this page</h3>
+          <dl class="credits">
+            <div><dt>Created by</dt><dd>Sandesh Naik</dd></div>
+            <div><dt>Frames</dt><dd>240, served as WebP</dd></div>
+            <div><dt>Sound</dt><dd>Synthesized live in your browser</dd></div>
+            <div><dt>Type</dt><dd>Anybody, Newsreader, IBM Plex Mono</dd></div>
+          </dl>
+          <p class="disclaimer"><i>Into the Night</i> is an unofficial, non-commercial fan project. Spider-Man, the Daily Bugle and all related characters are trademarks of Marvel. This site is not affiliated with, sponsored or endorsed by Marvel or The Walt Disney Company. The footage belongs to its owners and is used here for non-commercial fan purposes. The narration and the Bugle stories are original fan writing.</p>
+          <p class="colophon__actions">
+            <button class="press js-replay" type="button">Watch the film again</button>
+            <button class="press press--ghost js-mode" type="button" hidden>Read<span class="bar__more"> as text</span></button>
+          </p>
+        </footer>
+
+      </div>
+    </section>
+  </main>
 </body>
 </html>
